@@ -1,0 +1,68 @@
+*** Settings ***
+Resource    ../../../variables/Variables.robot    
+Resource    ../../../keyword/Keyword.robot
+#Suite Setup    Open Directory
+
+*** Test Cases ***
+################### Post ###################
+UpdateAThing_TST_F11_0_2_001_Error_ThingidNotFound
+    [Documentation]    Step is :    
+	...    1.Update a Thing
+
+	${current_timestamp}=    Change format date now    ${DDMMYYYYHMS_NOW}
+    #Headers
+	${headers}=    Create Dictionary        Content-Type=${HEADER_CONTENT_TYPE}    x-ais-OrderRef=${HEADER_X_AIS_ORDERREF_UPDATEATHING}${current_timestamp}    x-ais-OrderDesc=${HEADER_X_AIS_ORDERDESC_UPDATEATHING}    Accept=${HEADER_ACCEPT}  
+	Log To Console    Headers is : ${headers}
+		
+    #Prepare data for update
+    ${ThingId}=    Set Variable    6135995e01fc3d9999d27c77
+    ${random_number}=    generate random string    6    [NUMBERS]
+    ${random_thingIdentifier}=    generate random string    13    [NUMBERS]
+    ${random_thingSecret}=    generate random string    1    [NUMBERS]
+    ${random_imei}=    generate random string    15    [NUMBERS]
+	${SupplierId}=    Set Variable    ${VALUE_SUPPLIERID}${random_number}    
+    ${SupplierName}=    Set Variable    ${VALUE_SUPPLIERNAME}${random_number}
+	${ThingIdentifier}=    Set Variable    ${random_thingIdentifier}
+    ${ThingSecret}=    Set Variable    ${random_thingSecret}
+    ${IMEI}=    Set Variable    ${random_imei}
+	${ConnectivityType}=    Set Variable    ${VALUE_CONNECTIVITYTYPE_WIFI}
+    ${ThingName}=    Set Variable    ${VALUE_ATHINGNAME_UPDATE}${random_number}
+    ${CustomDetails_Key}=    Set Variable    ${VALUE_CUSTOMDETAILKEY_UPDATE}
+    ${CustomDetails_Value}=    Set Variable    ${random_number}
+
+	${ThingState}=    Set Variable    Pending
+    Log To Console    WorkerName is : ${ThingName}
+
+	#Body
+    ${body}=    Evaluate    {"ConnectivityType": "${ConnectivityType}","ThingIdentifier": "${ThingIdentifier}","ThingSecret": "${ThingSecret}","IMEI": "${IMEI}"}
+    Log To Console    Body is : ${body}
+    #Response
+    ${res}=    Run keyword And Continue On Failure    Put Api Request    ${URL_CENTRIC}${CENTRICAPIS}    ${URL_UPDATEATHING}/${ThingId}    ${headers}    ${body}
+	Log    Response is : ${res}
+    Log    ${res}
+
+    ${checkReponse}=    Run keyword And Continue On Failure    Response ResultCode Should Have Error    ${res}    ${CREATEATHING}   ${FIELD_OPERATIONSTATUS}    ${FIELD_CODE}    ${FIELD_DEVELOPERMESSAGE}    ${VALUE_LOG_CODE_40400}    ${VALUE_DESCRIPTION_THEREQUESTEDOPERATIONCOULDNOTBEFOUND_ERROR}
+    Log To Console    checkReponse is : ${checkReponse}
+	
+    #GetResponse_Details
+    ${Target}=    Set Variable    ThingId
+    ${DeveloperMessage}=    Set Variable    The ThingId '${ThingId}' could not be found.
+	${responseObjectDetail}=    Set Variable    [{'Target': '${Target}', 'DeveloperMessage': "${DeveloperMessage}"}]
+    ${GetResponse_OperationStatus}=    Get From Dictionary    ${res}     ${FIELD_OPERATIONSTATUS}   
+    ${GetResponse_Details}=    Get From Dictionary    ${GetResponse_OperationStatus}     ${FIELD_DETAILS}   
+
+	Run keyword And Continue On Failure    Should Be Equal As Strings    ${GetResponse_Details}    ${responseObjectDetail}
+
+    ${pathUrl}=    Set Variable    ${URL_UPDATEATHING}${ThingId}
+	${dataSearch}=    Set Variable    ${HEADER_X_AIS_ORDERREF_UPDATEATHING}${current_timestamp}
+
+	#====== Check log and Verify DB ==========
+    ${endPointName}=    Set Variable    null
+	${custom}=    Set Variable    null
+	${customDetailDB}=    Set Variable    null
+    ${responseObjectDetailLog}=    Set Variable    [{"Target":"${Target}","DeveloperMessage":"${DeveloperMessage}"}]
+	${bodyLog}=    Set Variable    {"ConnectivityType":"${ConnectivityType}","ThingIdentifier":"${ThingIdentifier}","ThingSecret":"${ThingSecret}","IMEI":"${IMEI}"}
+	Log UpdateAThing Error    ${VALUE_LOG_CODE_40400}    ${VALUE_DESCRIPTION_THEREQUESTEDOPERATIONCOULDNOTBEFOUND_ERROR}    ${VALUE_LOG_CODE_40400}    ${VALUE_DESCRIPTION_THEREQUESTEDOPERATIONCOULDNOTBEFOUND_ERROR}    ${res}    ${pathUrl}    ${dataSearch}    ${endPointName}    ${custom}    ${customDetailDB}    ${responseObjectDetailLog}    ${bodyLog} 
+
+
+
